@@ -3,18 +3,16 @@ package com.wfc.app.test3;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
-import android.animation.TypeEvaluator;
-import android.animation.ValueAnimator;
 import android.content.Context;
-import android.graphics.PointF;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.LinearInterpolator;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.Scroller;
+import android.widget.LinearLayout;
 
 import com.bumptech.glide.Glide;
 import com.wfc.app.test3.utils.DensityUtils;
@@ -28,9 +26,11 @@ public class SlidingSelectView extends ViewGroup {
 
     private static final String TAG = "SlidingSelectView";
 
-    int photoL, photoT, photoR, photoB, photoSize;
+    int photoL, photoT, photoR, photoB, photoLayoutWidth, photoLayoutHeight, photoSize;
 
     int width, height;
+
+    ViewGroup photoLayout;
 
     ImageView photoIv;
 
@@ -39,46 +39,53 @@ public class SlidingSelectView extends ViewGroup {
     private float downY;
 
     private int position;
+
+    LayoutInflater layoutInflater;
 //    Scroller mScroller;
 
 
     public SlidingSelectView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        layoutInflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 //        mScroller = new Scroller(context);
-    }
-
-    void initPhotoIv() {
-        photoIv = new ImageView(getContext());
-//        photoIv.setBackgroundColor(getResources().getColor(R.color.colorAccent));
-        LayoutParams lp = new LayoutParams(
-                DensityUtils.dip2px(getContext(), photoSize),
-                DensityUtils.dip2px(getContext(), photoSize));
-        photoIv.setLayoutParams(lp);
-        addView(photoIv);
-        setOnTouchListener(photoTouchListener);
-        nextPhoto();
     }
 
     void initSize() {
         width = getMeasuredWidth();
         height = getMeasuredHeight();
+        photoLayoutWidth = DensityUtils.dip2px(getContext(), 280);
+        photoSize = DensityUtils.dip2px(getContext(), 280);
+        photoLayoutHeight = DensityUtils.dip2px(getContext(), 320);
         Log.e(TAG, "get w h->" + width + " " + height);
+        Log.e(TAG, "get w1 h1->" + photoLayoutWidth + " " + photoLayoutHeight);
 //        photoSize = width - DensityUtils.dip2px(getContext(), 30 * 2);
-        photoSize = DensityUtils.dip2px(getContext(), 240);
-        photoL = (width - photoSize) / 2;
+//        photoSize = DensityUtils.dip2px(getContext(), 240);
+        photoL = (width - photoLayoutWidth) / 2;
         photoR = width - photoL;
-        photoT = (height - photoSize) /2;
+        photoT = (height - photoLayoutHeight) /2;
         photoB = height - photoT;
         Log.e(TAG, "get photo size->" + photoL + " " + photoR
                 + " " + photoT + " " + photoB);
     }
+
+    void initPhotoLayout() {
+        photoLayout = (ViewGroup) layoutInflater.inflate(R.layout.layout_photo, null);
+        LayoutParams lp = new LayoutParams(photoLayoutWidth, photoLayoutHeight);
+        photoLayout.setLayoutParams(lp);
+        addView(photoLayout);
+        setOnTouchListener(photoTouchListener);
+        photoIv = (ImageView) photoLayout.findViewById(R.id.iv_photo);
+        photoIv.setImageResource(R.mipmap.d1);
+//        nextPhoto();
+    }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         if(width==0 || height==0) {
             initSize();
-            initPhotoIv();
+            initPhotoLayout();
         }
     }
 
@@ -86,7 +93,8 @@ public class SlidingSelectView extends ViewGroup {
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
         if(changed) {
             Log.e(TAG, "l t r b->" + l + " " + t + " " + r + " " + b);
-            photoIv.layout(photoL, photoT, photoR, photoB);
+            photoLayout.layout(photoL, photoT, photoR, photoB);
+            photoIv.layout(0, 0, photoSize, photoSize);
         }
     }
 
@@ -104,9 +112,9 @@ public class SlidingSelectView extends ViewGroup {
 //                float offY = y - startY;
 //                photoT = photoT + (int) offY;
 //                photoB = photoT + photoSize;
-                photoIv.setY(photoIv.getY() + (y - startY));
+                photoLayout.setY(photoLayout.getY() + (y - startY));
                 startY = y;
-//                photoIv.layout(photoL, photoT, photoR, photoB);
+//                photoLayout.layout(photoL, photoT, photoR, photoB);
 //                scrollBy(0,- (int) offY);
                 break;
             case MotionEvent.ACTION_UP:
@@ -126,7 +134,7 @@ public class SlidingSelectView extends ViewGroup {
 //                    mScroller.startScroll(getScrollX(),
 //                            getScrollY(),
 //                            -getScrollX() ,-getScrollY());
-//                    photoIv.setY(photoT);
+//                    photoLayout.setY(photoT);
                     back();
                 }
                 break;
@@ -165,57 +173,57 @@ public class SlidingSelectView extends ViewGroup {
 //        valueAnimator.start();
 //        valueAnimator.addUpdateListener(animation -> {
 //            PointF point = (PointF) animation.getAnimatedValue();
-////            photoIv.setX(point.x);
-//            photoIv.setY(point.y);
+////            photoLayout.setX(point.x);
+//            photoLayout.setY(point.y);
 ////            float cVal = animation.getAnimatedFraction();
-////            photoIv.setAlpha(1 - cVal);
+////            photoLayout.setAlpha(1 - cVal);
 //        });
         float destY;
         if(v==1) {
-            destY = -(photoSize/2);
+            destY = -(photoLayoutHeight/2);
         } else {
-            destY = height + (photoSize/2);
+            destY = height + (photoLayoutHeight/2);
         }
         ObjectAnimator anim = ObjectAnimator
-                .ofFloat(photoIv, "", photoIv.getY(), destY)
+                .ofFloat(photoLayout, "", photoLayout.getY(), destY)
                 .setDuration(200);
         anim.start();
         anim.addUpdateListener(animation -> {
             float cVal = (Float) animation.getAnimatedValue();
-            photoIv.setY(cVal);
+            photoLayout.setY(cVal);
         });
         anim.addListener(new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd(Animator animation) {
-                photoIv.setVisibility(View.GONE);
+                photoLayout.setVisibility(View.GONE);
                 //让其回到原点
 //                photoT = (height - photoSize) /2;
 //                photoB = height - photoT;
 //                Log.e(TAG, "onAnimationEnd->" + photoL + " " + photoR
 //                        + " " + photoT + " " + photoB);
-                photoIv.setY(photoT);
+                photoLayout.setY(photoT);
 //                mScroller.startScroll(getScrollX(),
 //                        getScrollY(),
 //                        -getScrollX() ,-getScrollY());
 //                requestLayout();
-                photoIv.setVisibility(VISIBLE);
+                photoLayout.setVisibility(VISIBLE);
                 nextPhoto();
                 initAnim();
-//                photoIv.setAlpha(1.0f);
+//                photoLayout.setAlpha(1.0f);
             }
         });
     }
 
     void initAnim() {
         ObjectAnimator anim = ObjectAnimator//
-                .ofFloat(photoIv, "", 0.6f, 1)
+                .ofFloat(photoLayout, "", 0.6f, 1)
                 .setDuration(300);
         anim.start();
         anim.addUpdateListener(animation -> {
             float cVal = (Float) animation.getAnimatedValue();
-            photoIv.setAlpha(cVal);
-            photoIv.setScaleX(cVal);
-            photoIv.setScaleY(cVal);
+            photoLayout.setAlpha(cVal);
+            photoLayout.setScaleX(cVal);
+            photoLayout.setScaleY(cVal);
         });
     }
 
@@ -228,12 +236,12 @@ public class SlidingSelectView extends ViewGroup {
 
     void back() {
         ObjectAnimator anim = ObjectAnimator//
-                .ofFloat(photoIv, "", photoIv.getY(), photoT)
+                .ofFloat(photoLayout, "", photoLayout.getY(), photoT)
                 .setDuration(200);
         anim.start();
         anim.addUpdateListener(animation -> {
             float cVal = (Float) animation.getAnimatedValue();
-            photoIv.setY(cVal);
+            photoLayout.setY(cVal);
         });
     }
 
