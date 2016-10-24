@@ -10,9 +10,7 @@ import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
 import com.bumptech.glide.Glide;
 import com.wfc.app.test3.utils.DensityUtils;
@@ -41,25 +39,23 @@ public class SlidingSelectView extends ViewGroup {
     private int position;
 
     LayoutInflater layoutInflater;
-//    Scroller mScroller;
 
 
     public SlidingSelectView(Context context, AttributeSet attrs) {
         super(context, attrs);
         layoutInflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-//        mScroller = new Scroller(context);
+        setOnTouchListener(photoTouchListener);
+        photoLayoutWidth = DensityUtils.dip2px(getContext(), 280);
+        photoSize = DensityUtils.dip2px(getContext(), 280);
+        photoLayoutHeight = DensityUtils.dip2px(getContext(), 320);
+        Log.e(TAG, "get w1 h1->" + photoLayoutWidth + " " + photoLayoutHeight);
+        initPhotoLayout();
     }
 
     void initSize() {
         width = getMeasuredWidth();
         height = getMeasuredHeight();
-        photoLayoutWidth = DensityUtils.dip2px(getContext(), 280);
-        photoSize = DensityUtils.dip2px(getContext(), 280);
-        photoLayoutHeight = DensityUtils.dip2px(getContext(), 320);
         Log.e(TAG, "get w h->" + width + " " + height);
-        Log.e(TAG, "get w1 h1->" + photoLayoutWidth + " " + photoLayoutHeight);
-//        photoSize = width - DensityUtils.dip2px(getContext(), 30 * 2);
-//        photoSize = DensityUtils.dip2px(getContext(), 240);
         photoL = (width - photoLayoutWidth) / 2;
         photoR = width - photoL;
         photoT = (height - photoLayoutHeight) /2;
@@ -76,25 +72,30 @@ public class SlidingSelectView extends ViewGroup {
         setOnTouchListener(photoTouchListener);
         photoIv = (ImageView) photoLayout.findViewById(R.id.iv_photo);
         photoIv.setImageResource(R.mipmap.d1);
-//        nextPhoto();
+        nextPhoto();
     }
 
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        // 计算出所有的childView的宽和高
+        measureChildren(widthMeasureSpec, heightMeasureSpec);
+        //测量并保存layout的宽高(使用getDefaultSize时，wrap_content和match_perent都是填充屏幕)
+        //稍后会重新写这个方法，能达到wrap_content的效果
+        setMeasuredDimension( getDefaultSize(getSuggestedMinimumWidth(), widthMeasureSpec),
+                getDefaultSize(getSuggestedMinimumHeight(), heightMeasureSpec));
         if(width==0 || height==0) {
             initSize();
-            initPhotoLayout();
         }
     }
 
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        Log.e(TAG, "l t r b->" + l + " " + t + " " + r + " " + b);
         if(changed) {
-            Log.e(TAG, "l t r b->" + l + " " + t + " " + r + " " + b);
+            Log.i(TAG, "onLayout: changed");
             photoLayout.layout(photoL, photoT, photoR, photoB);
-            photoIv.layout(0, 0, photoSize, photoSize);
         }
     }
 
@@ -109,13 +110,8 @@ public class SlidingSelectView extends ViewGroup {
             case MotionEvent.ACTION_MOVE:
                 float y = event.getY();
                 Log.e(TAG, "y " + y);
-//                float offY = y - startY;
-//                photoT = photoT + (int) offY;
-//                photoB = photoT + photoSize;
                 photoLayout.setY(photoLayout.getY() + (y - startY));
                 startY = y;
-//                photoLayout.layout(photoL, photoT, photoR, photoB);
-//                scrollBy(0,- (int) offY);
                 break;
             case MotionEvent.ACTION_UP:
                 float offY1 = event.getY() - downY;
@@ -131,10 +127,6 @@ public class SlidingSelectView extends ViewGroup {
                     }
                 } else {
                     //开启滑动,让其回到原点
-//                    mScroller.startScroll(getScrollX(),
-//                            getScrollY(),
-//                            -getScrollX() ,-getScrollY());
-//                    photoLayout.setY(photoT);
                     back();
                 }
                 break;
@@ -147,37 +139,6 @@ public class SlidingSelectView extends ViewGroup {
      * @param v 1上
      */
     void sliding(int v) {
-//        ValueAnimator valueAnimator = new ValueAnimator();
-//        valueAnimator.setDuration(200);
-//        valueAnimator.setObjectValues(new PointF(0, 0));
-//        valueAnimator.setInterpolator(new LinearInterpolator());
-//        valueAnimator.setEvaluator(new TypeEvaluator<PointF>()
-//        {
-//            // fraction = t / duration
-//            @Override
-//            public PointF evaluate(float fraction, PointF startValue,
-//                                   PointF endValue)
-//            {
-//                Log.e(TAG, fraction * 3 + "");
-//                // x方向200px/s ，则y方向0.5 * 10 * t
-//                PointF point = new PointF();
-//                float fy = fraction;
-//                if(v==0) {
-//                    fy = 1 - fraction;
-//                }
-////                point.x = photoL;
-//                point.y = 200 * fy * 3;
-//                return point;
-//            }
-//        });
-//        valueAnimator.start();
-//        valueAnimator.addUpdateListener(animation -> {
-//            PointF point = (PointF) animation.getAnimatedValue();
-////            photoLayout.setX(point.x);
-//            photoLayout.setY(point.y);
-////            float cVal = animation.getAnimatedFraction();
-////            photoLayout.setAlpha(1 - cVal);
-//        });
         float destY;
         if(v==1) {
             destY = -(photoLayoutHeight/2);
@@ -197,19 +158,10 @@ public class SlidingSelectView extends ViewGroup {
             public void onAnimationEnd(Animator animation) {
                 photoLayout.setVisibility(View.GONE);
                 //让其回到原点
-//                photoT = (height - photoSize) /2;
-//                photoB = height - photoT;
-//                Log.e(TAG, "onAnimationEnd->" + photoL + " " + photoR
-//                        + " " + photoT + " " + photoB);
                 photoLayout.setY(photoT);
-//                mScroller.startScroll(getScrollX(),
-//                        getScrollY(),
-//                        -getScrollX() ,-getScrollY());
-//                requestLayout();
                 photoLayout.setVisibility(VISIBLE);
                 nextPhoto();
                 initAnim();
-//                photoLayout.setAlpha(1.0f);
             }
         });
     }
@@ -245,11 +197,4 @@ public class SlidingSelectView extends ViewGroup {
         });
     }
 
-//    public void computeScroll() {
-//        super.computeScroll();
-//        if(mScroller.computeScrollOffset()){
-//            scrollTo(mScroller.getCurrX(),mScroller.getCurrY());
-//        }
-//        invalidate();//必须要调用
-//    }
 }
