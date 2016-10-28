@@ -11,16 +11,20 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
+import com.wfc.app.test3.model.Photo;
 import com.wfc.app.test3.utils.DensityUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class SlidingSelectView extends ViewGroup {
 
-    int[] photos = {
-        R.mipmap.d1, R.mipmap.d2, R.mipmap.d3, R.mipmap.d4
-    };
+    private List<Photo> photos = new ArrayList<>();
 
     private static final String TAG = "SlidingSelectView";
 
@@ -32,6 +36,8 @@ public class SlidingSelectView extends ViewGroup {
 
     ImageView photoIv;
 
+    TextView titleTv;
+
     private float startY;
 
     private float downY;
@@ -40,6 +46,7 @@ public class SlidingSelectView extends ViewGroup {
 
     LayoutInflater layoutInflater;
 
+    private Callback callback;
 
     public SlidingSelectView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -50,6 +57,12 @@ public class SlidingSelectView extends ViewGroup {
         photoLayoutHeight = DensityUtils.dip2px(getContext(), 320);
         Log.e(TAG, "get w1 h1->" + photoLayoutWidth + " " + photoLayoutHeight);
         initPhotoLayout();
+    }
+
+    void setPhotos(List<Photo> photos) {
+        this.photos = photos;
+        position = 0;
+        nextPhoto();
     }
 
     void initSize() {
@@ -72,7 +85,7 @@ public class SlidingSelectView extends ViewGroup {
         setOnTouchListener(photoTouchListener);
         photoIv = (ImageView) photoLayout.findViewById(R.id.iv_photo);
         photoIv.setImageResource(R.mipmap.d1);
-        nextPhoto();
+        titleTv = (TextView) photoLayout.findViewById(R.id.tv_name);
     }
 
 
@@ -180,10 +193,21 @@ public class SlidingSelectView extends ViewGroup {
     }
 
     void nextPhoto() {
-        Glide.with(getContext())
-                .load(photos[position++])
-                .placeholder(R.mipmap.ic_launcher)
-                .into(photoIv);
+        if(photos!=null
+                && photos.size()>0) {
+            if(position < photos.size()) {
+                Glide.with(getContext())
+                        .load(Integer.parseInt(photos.get(position).getPhotoUrl()))
+                        .placeholder(R.mipmap.ic_launcher)
+                        .into(photoIv);
+
+                position ++;
+            } else {
+                //数组越界
+                if(callback!=null)
+                    callback.onOver();
+            }
+        }
     }
 
     void back() {
@@ -195,6 +219,14 @@ public class SlidingSelectView extends ViewGroup {
             float cVal = (Float) animation.getAnimatedValue();
             photoLayout.setY(cVal);
         });
+    }
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
+
+    interface Callback {
+        void onOver();
     }
 
 }
